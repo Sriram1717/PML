@@ -1,0 +1,101 @@
+---
+title: "PML_final_week_project"
+author: "Sriram Sureshkumar"
+date: "121st October 2020"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r}
+library(caret)
+library(knitr)
+
+library(data.table)
+library(rpart.plot)
+library(rpart)
+
+library(gbm)
+library(ggplot2)
+
+library(corrplot)
+
+```
+Exloratory data analysis and data cleaning
+```{r}
+test_datalink <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+train_datalink  <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+
+test_data <- read.csv(url(test_datalink))
+train_data <- read.csv(url(train_datalink))
+
+
+```
+now proceeding for the cleaning the input of the data
+
+```{r}
+training_dataset <- train_data[, colSums(is.na(train_data)) == 0]
+testing_dataset <- test_data[, colSums(is.na(test_data)) == 0]
+```
+Splitting data into the ratio of 70 to 30 for train and test
+```{r}
+training_dataset <- training_dataset[, -c(1:7)]
+testing_dataset <- testing_dataset[, -c(1:7)]
+dim(training_dataset)
+```
+
+```{r}
+set.seed(7717)
+datatraining <- createDataPartition(train_data$classe, p = 0.7, list = FALSE)
+training_dataset <- training_dataset[datatraining, ]
+testing_dataset <- training_dataset[-datatraining, ]
+dim(training_dataset)
+dim(testing_dataset)
+```
+
+```{r}
+noneZero <- nearZeroVar(training_dataset)
+training_dataset <- training_dataset[, -noneZero]
+testing_dataset <- testing_dataset[, -noneZero]
+dim(training_dataset)
+dim(testing_dataset)
+```
+
+
+```{r}
+plot_cor <- cor(training_dataset[, -53])
+corrplot(plot_cor, order = "FPC", method = "color", type = "upper", tl.cex = 0.8, tl.col = rgb(0, 0, 0))
+```
+
+Now let's build the ML model for prediction 
+
+```{r}
+set.seed(1717)
+X <- rpart(classe ~ ., data=training_dataset, method = "class")
+rpart.plot(X)
+```
+
+now we will be validate the model 
+```{r}
+pred <- predict(X, testing_dataset, type = "class")
+ab <- confusionMatrix(pred, testing_dataset$classe)
+ab
+```
+Now let's plot predictions
+```{r}
+plot(pred)
+```
+
+```{r}
+set.seed(77777)
+c_gbm <- trainControl(method = "repeatedcv", number = 5, repeats = 1)
+validation_gbm <- train(classe ~ .,data=training_dataset, method = "gbm", trControl = c_gbm, verbose = FALSE)
+validation_gbm$finalModel
+```
+
+
+That's the end of the project, thank you!!
+
+
+
+
